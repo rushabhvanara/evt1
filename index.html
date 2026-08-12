@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study and identification of EV components</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-light: #ffffff;
+            --sidebar-bg: #fdfdfd;
+            --primary-blue: #1a73e8;
+            --text-dark: #202124;
+            --text-muted: #444746;
+            --border-color: #e0e0e0;
+            --accent-color: #f9ab00;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Keeps scrollbars inside panels */
+        }
+
+        /* Header */
+        .header-ui {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        .header-ui h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        /* Main Interaction Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(var(--border-color) 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+            background-color: #fafafa;
+            position: relative;
+        }
+
+        .ev-visual-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* SVG Components */
+        .component-group { cursor: pointer; }
+        .part-shape { stroke-width: 2.5; transition: 0.3s; fill: #ffffff; }
+        
+        .active-part .part-shape {
+            stroke: var(--primary-blue) !important;
+            stroke-width: 5 !important;
+            filter: drop-shadow(0 0 10px rgba(26, 115, 232, 0.3));
+        }
+
+        .label-text {
+            font-size: 11px;
+            font-weight: 700;
+            fill: #3c4043;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        /* Sidebar Info */
+        .sidebar {
+            width: 440px;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.02);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: #e8f0fe;
+            color: var(--primary-blue);
+        }
+
+        .spec-item {
+            background: #fff;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .spec-key { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 2px; }
+        .spec-val { color: var(--text-dark); font-weight: 700; font-family: monospace; }
+
+        #chart-container {
+            margin-top: 20px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            height: 280px;
+            border-radius: 8px;
+        }
+
+        .power-flow {
+            stroke-dasharray: 8;
+            animation: dash 1s linear infinite;
+            visibility: hidden;
+            stroke: var(--accent-color);
+        }
+
+        @keyframes dash { to { stroke-dashoffset: -16; } }
+
+        /* Footer Styling */
+        footer {
+            background-color: #fff;
+            border-top: 1px solid var(--border-color);
+            padding: 15px 30px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-line-1 { font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
+        .footer-line-2 { font-size: 0.8rem; }
+        .heart { color: #d93025; }
+
+        @media (max-width: 1000px) {
+            .app-container { flex-direction: column; overflow: auto; }
+            .sidebar { width: auto; border-left: none; border-top: 1px solid var(--border-color); }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header-ui">
+    <h1>Study and identification of EV components</h1>
+    <p style="margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Interactive Educational Tool for Electrical Engineering</p>
+</header>
+
+<div class="app-container">
+    <main class="main-content">
+        <div class="ev-visual-container">
+            <svg viewBox="0 0 800 400" width="100%" height="100%">
+                <!-- Car Body Outline -->
+                <path d="M100,280 L700,280 L740,220 L680,100 L180,100 L80,220 Z" fill="#ffffff" stroke="#bdc1c6" stroke-width="2" />
+                
+                <!-- Power Flow Path -->
+                <path id="flow-line" class="power-flow" d="M280,190 L400,190 L520,190" stroke-width="4" fill="none" />
+
+                <!-- Interactive Components -->
+                <g id="battery" class="component-group">
+                    <rect class="part-shape" x="180" y="150" width="180" height="80" rx="4" stroke="#1a73e8" />
+                    <text x="215" y="195" class="label-text">Battery Pack</text>
+                </g>
+
+                <g id="controller" class="component-group">
+                    <rect class="part-shape" x="400" y="140" width="100" height="100" rx="4" stroke="#9333ea" />
+                    <text x="412" y="130" class="label-text">Controller</text>
+                </g>
+
+                <g id="motor" class="component-group">
+                    <circle class="part-shape" cx="580" cy="190" r="45" stroke="#d93025" />
+                    <text x="548" y="260" class="label-text">Traction Motor</text>
+                </g>
+
+                <g id="drivetrain" class="component-group">
+                    <rect class="part-shape" x="625" y="175" width="50" height="30" rx="2" stroke="#1e8e3e" />
+                    <text x="618" y="225" class="label-text" style="font-size: 9px;">Drivetrain</text>
+                </g>
+
+                <!-- Tires -->
+                <circle cx="180" cy="300" r="35" fill="#202124" />
+                <circle cx="620" cy="300" r="35" fill="#202124" />
+            </svg>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <div id="welcome-msg" style="text-align: center; padding-top: 60px;">
+            <i class="fas fa-bolt fa-3x" style="margin-bottom: 20px; color: var(--accent-color); opacity: 0.5;"></i>
+            <h3>Component Analysis</h3>
+            <p style="color: var(--text-muted);">Click on a vehicle part to identify its function and technical specifications.</p>
+        </div>
+
+        <div id="details-panel" style="display: none;">
+            <span id="comp-badge" class="badge">SYSTEM READY</span>
+            <h2 id="comp-title" style="margin-top: 0; color: var(--text-dark);">Component</h2>
+            <p id="comp-desc" style="line-height: 1.6; color: var(--text-muted); font-size: 0.95rem;"></p>
+
+            <div id="specs-list"></div>
+
+            <div id="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<footer>
+    <div class="footer-line-1">
+        Made with <span class="heart">♥</span> by Rushabh D. Vanara | Department of Electrical Engineering, Government Polytechnic, Junagadh
+    </div>
+    <div class="footer-line-2">
+        &copy; 2026 All rights reserved.
+    </div>
+</footer>
+
+<script>
+    const engineeringModel = {
+        battery: {
+            title: "Traction Battery Pack",
+            badge: "Energy Storage System",
+            desc: "The primary energy storage unit. High-voltage DC is distributed from here to the power electronics module.",
+            specs: [["Nominal Voltage", "800V DC"], ["Cell Type", "Lithium-Ion (NMC)"], ["Energy Density", "260 Wh/kg"]],
+            chart: { label: "Discharge Characteristic", x: "State of Charge (%)", y: "Voltage (V)", data: [820, 805, 790, 770, 740, 680], color: "#1a73e8" }
+        },
+        controller: {
+            title: "Motor Controller / Inverter",
+            badge: "Power Electronics",
+            desc: "Acts as the 'brain' of the EV. It converts Battery DC into 3-phase AC and manages motor torque and speed.",
+            specs: [["Transistor Tech", "SiC MOSFET"], ["Efficiency", "98.5%"], ["Max Current", "450A Arms"]],
+            chart: { label: "Efficiency Map", x: "Power Output (%)", y: "Efficiency (%)", data: [85, 92, 98, 97.5, 96, 94], color: "#9333ea" }
+        },
+        motor: {
+            title: "Traction Motor",
+            badge: "Propulsion Unit",
+            desc: "A high-speed Permanent Magnet Synchronous Motor (PMSM) that converts electrical energy into rotational motion.",
+            specs: [["Motor Type", "PMSM AC Synchronous"], ["Peak Torque", "410 Nm"], ["Max Speed", "18,000 RPM"]],
+            chart: { label: "Torque-Speed Curve", x: "RPM", y: "Torque (Nm)", data: [410, 410, 410, 360, 220, 110], color: "#d93025" }
+        },
+        drivetrain: {
+            title: "Drivetrain / Gearbox",
+            badge: "Mechanical Transmission",
+            desc: "A single-speed reduction gear that translates high-speed motor output to usable torque for the wheels.",
+            specs: [["Gear Ratio", "9.05:1"], ["Differential", "Integrated Open"], ["Mechanical Loss", "Approx 2%"]],
+            chart: { label: "Transmission Efficiency", x: "Input RPM", y: "Losses (kW)", data: [0.1, 0.4, 0.8, 1.5, 2.8, 4.2], color: "#1e8e3e" }
+        }
+    };
+
+    let activeChart = null;
+
+    document.querySelectorAll('.component-group').forEach(el => {
+        el.addEventListener('click', function() {
+            const id = this.id;
+            const data = engineeringModel[id];
+
+            // Highlight Part
+            document.querySelectorAll('.component-group').forEach(c => c.classList.remove('active-part'));
+            this.classList.add('active-part');
+            
+            // Show Panel
+            document.getElementById('welcome-msg').style.display = 'none';
+            document.getElementById('details-panel').style.display = 'block';
+            document.getElementById('flow-line').style.visibility = 'visible';
+
+            // Populate Info
+            document.getElementById('comp-title').innerText = data.title;
+            document.getElementById('comp-badge').innerText = data.badge;
+            document.getElementById('comp-desc').innerText = data.desc;
+
+            const specsList = document.getElementById('specs-list');
+            specsList.innerHTML = data.specs.map(s => `
+                <div class="spec-item">
+                    <span class="spec-key">${s[0]}</span>
+                    <span class="spec-val">${s[1]}</span>
+                </div>
+            `).join('');
+
+            // Chartjs Update with Axis Legends
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if (activeChart) activeChart.destroy();
+
+            activeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['0', '20', '40', '60', '80', '100'],
+                    datasets: [{
+                        label: data.chart.label,
+                        data: data.chart.data,
+                        borderColor: data.chart.color,
+                        backgroundColor: data.chart.color + '15',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: data.chart.color
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: true, labels: { boxWidth: 12, font: { weight: 'bold' } } } 
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: data.chart.x,
+                                color: '#202124',
+                                font: { weight: 'bold', size: 12 }
+                            },
+                            ticks: { color: '#5f6368' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: data.chart.y,
+                                color: '#202124',
+                                font: { weight: 'bold', size: 12 }
+                            },
+                            ticks: { color: '#5f6368' },
+                            grid: { color: '#f0f0f0' }
+                        }
+                    }
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
